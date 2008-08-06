@@ -1,0 +1,22 @@
+GoogleRest
+==========
+
+A plugin to manipulate some Google REST API. For now it partially support:
+* Google Ajax Feed Api (find a feed, retrieve articles from a feed)
+* Google Search API (inbound links, number of indexed page)
+
+Setup
+=====
+
+You must add a config/google_rest.yml with your api key and referer (requested by Google Terms of use)
+Ex config/google_rest.yml
+---
+api_key: XXXXX
+referer: http://www.mydomain.com
+
+
+Example
+=======
+
+
+Copyright (c) 2008 Olivier Ruffin, http://www.veilleperso.com , released under the MIT license
