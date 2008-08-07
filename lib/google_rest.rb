@@ -47,12 +47,12 @@ class GoogleRest
   end
   
   def inbound_links(url)
-    res = common_search( API_URL[:web], CGI::escape("link:#{url.gsub(/^https?:\/\//,'')}"))
+    res = common_search( API_URL[:web], "q=" + CGI::escape("link:#{url.gsub(/^https?:\/\//,'')}"))
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
   
   def indexed_pages(url)
-    res = common_search( API_URL[:web], CGI::escape("site:#{url.gsub(/^https?:\/\//,'')}"))
+    res = common_search( API_URL[:web], "q=" + CGI::escape("site:#{url.gsub(/^https?:\/\//,'')}"))
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
   
