@@ -16,7 +16,7 @@ class GoogleRest
   def initialize
     path = File.join(RAILS_ROOT, "config/google_rest.yml")
     if !File.exists?(path)
-      raise StandarError, "You must create config/google_rest.yml to use this plugin"
+      raise StandardError, "You must create config/google_rest.yml to use this plugin"
     else
       data = YAML.load_file(path)
       self.api_key = data['api_key'] if RAILS_ENV == 'production'
