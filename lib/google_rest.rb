@@ -60,7 +60,10 @@ class GoogleRest
   def common_search(base_url, init_query, options = {})
     query = []
     query << init_query unless init_query.blank?
-    query << "&hl=#{options[:lang]}&lr=lang_#{options[:lang]}" unless options[:lang].blank?
+    unless options[:lang].blank?
+      lang = options[:lang].downcase
+      query << "&hl=#{lang}&lr=lang_#{lang}"
+    end
     query << "&start=#{options[:start]}" unless options[:start].blank?
     google_request("#{base_url}?#{query.join('&')}")
   end
