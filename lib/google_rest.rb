@@ -1,16 +1,19 @@
-# GoogleRest
-require 'open-uri'
+require 'httparty'
 
 class GoogleRest
-  cattr_accessor :api_key
-  cattr_accessor :referer
-
+  include HTTParty
+  attr_accessor :api_key
+  attr_accessor :referer
+  
+  base_uri "http://ajax.googleapis.com/ajax/services"
+  format :json
+  
   API_VERSION = "1.0"
   API_URL = {
-    :feed_lookup => "http://ajax.googleapis.com/ajax/services/feed/lookup",
-    :feed_load => "http://ajax.googleapis.com/ajax/services/feed/load",
-    :web => "http://ajax.googleapis.com/ajax/services/search/web",
-    :blog => "http://ajax.googleapis.com/ajax/services/search/blogs"
+    :feed_lookup => "/feed/lookup",
+    :feed_load => "/feed/load",
+    :web => "/search/web",
+    :blog => "/search/blogs"
   }
 
   def initialize
@@ -25,65 +28,55 @@ class GoogleRest
   end
 
   def feed_lookup(website)
-    url = API_URL[:feed_lookup] + "?q=#{CGI::escape(website.gsub(/^https?:\/\//i, ''))}"
-    res = google_request(url)
+    res = google_request(:feed_lookup, {:q => website.gsub(/^https?:\/\//i, '')})
     res.blank? ? nil : res["url"]
   end
 
   def feed_load(feed_url, count_entries = 10)
-    url = API_URL[:feed_load] + "?num=#{count_entries}&q=#{CGI::escape(feed_url)}"
-    res = google_request(url)
+    res = google_request(:feed_load, {:num => count_entries, :q => feed_url} )
     res.blank? ? nil : res["feed"]
   end
   
   def blog_search(query, options = {})
-    res = common_search( API_URL[:blog], "scoring=d&rsz=large&q=" + CGI::escape(query), options)
+    res = common_search(:blog, {:scoring => 'd', :rsz => 'large', :q => query}.merge(options))
     (res.blank? || res["results"].blank?) ? [] : res["results"]
   end
 
   def web_search(query, options = {})
-    res = common_search( API_URL[:web], "rsz=large&q=" + CGI::escape(query), options)
+    res = common_search(:web, {:rsz => 'large', :q => query}.merge(options))
     (res.blank? || res["results"].blank?) ? [] : res["results"]
   end
   
   def inbound_links(url)
-    res = common_search( API_URL[:web], "q=" + CGI::escape("link:#{url.gsub(/^https?:\/\//,'')}"))
+    res = common_search(:web, {:q => "link:#{url.gsub(/^https?:\/\//,'')}"})
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
   
   def indexed_pages(url)
-    res = common_search( API_URL[:web], "q=" + CGI::escape("site:#{url.gsub(/^https?:\/\//,'')}"))
+    res = common_search(:web, {:q => "site:#{url.gsub(/^https?:\/\//,'')}"})
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
   
   private
-  def common_search(base_url, init_query, options = {})
-    query = []
-    query << init_query unless init_query.blank?
-    unless options[:lang].blank?
-      lang = options[:lang].downcase
-      query << "&hl=#{lang}&lr=lang_#{lang}"
+  def common_search(type, query = {})
+    if !(lang=query.delete(:lang)).blank?
+      lang.downcase!
+      query[:hl] = lang
+      query[:lr] = "lang_#{lang}"
     end
-    query << "&start=#{options[:start]}" unless options[:start].blank?
-    google_request("#{base_url}?#{query.join('&')}")
+    google_request(type, query)
   end
 
-  def google_request(url)
-    more = ["v=#{API_VERSION}"]
-    more << "key=#{self.api_key}" unless self.api_key.blank?
-    uri = URI.parse("#{url}&#{more.join('&')}") rescue uri = nil
-    return if uri.blank?
-
-    logger.debug "Google Request: #{uri.to_s}"
-    http = Net::HTTP.new(uri.host, uri.port)
-    response = http.request_get(uri.request_uri, {'Referer' => self.referer})
-    res = response.body
-
-    unless res.blank?
-      data = ActiveSupport::JSON.decode(res) rescue data = nil
-      if data.is_a?(Hash) && data["responseData"].is_a?(Hash)
-        Util.json_recursive_unescape(data["responseData"])
-      end
+  def google_request(type, query = {})
+    query[:v] = API_VERSION
+    query[:key] = api_key unless api_key.blank?
+    self.class.debug = true
+    self.class.headers({'Referer' => self.referer})
+    res = self.class.get(API_URL[type], :query => query)
+    if res.is_a?(Hash) && res["responseData"].is_a?(Hash)
+      Util.json_recursive_unescape(res["responseData"])
+    else
+      nil
     end
   end
   
