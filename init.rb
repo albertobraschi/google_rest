@@ -1,2 +1,2 @@
-# Include hook code here
+config.gem 'httparty'
 require 'google_rest'

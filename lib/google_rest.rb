@@ -1,15 +1,15 @@
-require 'httparty'
-
 class GoogleRest
-  include HTTParty
+  if defined?(HTTParty)
+    include HTTParty
+    base_uri "http://ajax.googleapis.com/ajax/services"
+    format :json
+  end
+
   attr_accessor :api_key
   attr_accessor :referer
 
   @@ascii_available = "".respond_to?(:to_ascii)
   
-  base_uri "http://ajax.googleapis.com/ajax/services"
-  format :json
-
   API_VERSION = "1.0"
   API_URL = {
     :feed_lookup => "/feed/lookup",
