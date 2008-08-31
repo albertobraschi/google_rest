@@ -4,10 +4,12 @@ class GoogleRest
   include HTTParty
   attr_accessor :api_key
   attr_accessor :referer
+
+  @@ascii_available = "".respond_to?(:to_ascii)
   
   base_uri "http://ajax.googleapis.com/ajax/services"
   format :json
-  
+
   API_VERSION = "1.0"
   API_URL = {
     :feed_lookup => "/feed/lookup",
@@ -33,10 +35,25 @@ class GoogleRest
   end
 
   def feed_load(feed_url, count_entries = 10)
-    res = google_request(:feed_load, {:num => count_entries, :q => feed_url} )
+    res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h'} )
     res.blank? ? nil : res["feed"]
   end
-  
+
+  def tagcloud(feed_url, count_entries = 100)
+    res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h', :no_escape => true} )
+    if res.blank? or res["feed"].blank? or res["feed"]["entries"].blank?
+      return {}
+    end
+    
+    res["feed"]["entries"].collect {|e|e["categories"]}.flatten.inject({}) do |hsh, str|
+      next if str.blank?
+      str = (@@ascii_available ? str.to_ascii : str).downcase
+      hsh[str] ||= 0
+      hsh[str] += 1
+      hsh
+    end.to_a.collect {|e|e[1]>1 ? [e[0], e[1]] : nil}.compact.sort {|a,b| b[1]<=>a[1]}
+  end
+
   def blog_search(query, options = {})
     res = common_search(:blog, {:scoring => 'd', :rsz => 'large', :q => query}.merge(options))
     (res.blank? || res["results"].blank?) ? [] : res["results"]
@@ -46,17 +63,17 @@ class GoogleRest
     res = common_search(:web, {:rsz => 'large', :q => query}.merge(options))
     (res.blank? || res["results"].blank?) ? [] : res["results"]
   end
-  
+
   def inbound_links(url)
     res = common_search(:web, {:q => "link:#{url.gsub(/^https?:\/\//,'')}"})
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
-  
+
   def indexed_pages(url)
     res = common_search(:web, {:q => "site:#{url.gsub(/^https?:\/\//,'')}"})
     (res.blank? || res["cursor"].blank?) ? 0 : res["cursor"]["estimatedResultCount"].to_i
   end
-  
+
   private
   def common_search(type, query = {})
     if !(lang=query.delete(:lang)).blank?
@@ -68,21 +85,22 @@ class GoogleRest
   end
 
   def google_request(type, query = {})
+    no_escape = query.delete(:no_escape)
     query[:v] = API_VERSION
     query[:key] = api_key unless api_key.blank?
     self.class.headers({'Referer' => self.referer})
     res = self.class.get(API_URL[type], :query => query)
     if res.is_a?(Hash) && res["responseData"].is_a?(Hash)
-      Util.json_recursive_unescape(res["responseData"])
+      no_escape ? res["responseData"] : Util.json_recursive_unescape(res["responseData"])
     else
       nil
     end
   end
-  
+
   def logger
     @logger ||= defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : Logger.new(STDOUT)
   end
-  
+
   module Util
     JSON_ESCAPE = { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '=' => '\u003D' }
 
@@ -92,7 +110,7 @@ class GoogleRest
     def json_unescape(s)
       JSON_ESCAPE.inject(s.to_s) { |str, (k,v)| str.gsub!(/#{Regexp.escape(v)}/i, k); str }
     end
-    
+
     # A utility method for escaping HTML entities in JSON strings.
     #   puts json_escape("is a > 0 & a < 10?")
     #   # => is a \u003E 0 \u0026 a \u003C 10?
