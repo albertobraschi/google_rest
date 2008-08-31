@@ -45,7 +45,7 @@ class GoogleRest
       return {}
     end
     
-    res["feed"]["entries"].collect {|e|e["categories"]}.flatten.inject({}) do |hsh, str|
+    res["feed"]["entries"].collect {|e| Util.json_recursive_unescape(e["categories"])}.flatten.inject({}) do |hsh, str|
       next if str.blank?
       str = (@@ascii_available ? str.to_ascii : str).downcase
       hsh[str] ||= 0
