@@ -9,7 +9,7 @@ class GoogleRest
   attr_accessor :referer
 
   @@ascii_available = "".respond_to?(:to_ascii)
-  
+
   API_VERSION = "1.0"
   API_URL = {
     :feed_lookup => "/feed/lookup",
@@ -44,8 +44,14 @@ class GoogleRest
     if res.blank? or res["feed"].blank? or res["feed"]["entries"].blank?
       return {}
     end
-    
-    res["feed"]["entries"].collect {|e| Util.json_recursive_unescape(e["categories"])}.flatten.inject({}) do |hsh, str|
+
+    res["feed"]["entries"].collect do |e|
+      begin
+        Util.json_recursive_unescape(e["categories"])
+      rescue ActiveSupport::JSON::ParseError 
+        nil
+      end
+    end.flatten.compact.inject({}) do |hsh, str|
       next if str.blank?
       str = (@@ascii_available ? str.to_ascii : str).downcase
       hsh[str] ||= 0
