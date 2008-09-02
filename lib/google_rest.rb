@@ -101,6 +101,8 @@ class GoogleRest
     else
       nil
     end
+  rescue ActiveSupport::JSON::ParseError
+    nil
   end
 
   def logger
