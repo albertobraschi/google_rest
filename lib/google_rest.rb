@@ -39,27 +39,6 @@ class GoogleRest
     res.blank? ? nil : res["feed"]
   end
 
-  def tagcloud(feed_url, count_entries = 100)
-    res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h', :no_escape => true} )
-    if res.blank? or res["feed"].blank? or res["feed"]["entries"].blank?
-      return {}
-    end
-
-    res["feed"]["entries"].collect do |e|
-      begin
-        Util.json_recursive_unescape(e["categories"])
-      rescue ActiveSupport::JSON::ParseError 
-        nil
-      end
-    end.flatten.compact.inject({}) do |hsh, str|
-      next if str.blank?
-      str = (@@ascii_available ? str.to_ascii : str).downcase
-      hsh[str] ||= 0
-      hsh[str] += 1
-      hsh
-    end.to_a.collect {|e|e[1]>1 ? [e[0], e[1]] : nil}.compact.sort {|a,b| b[1]<=>a[1]}
-  end
-
   def blog_search(query, options = {})
     res = common_search(:blog, {:scoring => 'd', :rsz => 'large', :q => query}.merge(options))
     (res.blank? || res["results"].blank?) ? [] : res["results"]
@@ -94,6 +73,7 @@ class GoogleRest
     no_escape = query.delete(:no_escape)
     query[:v] = API_VERSION
     query[:key] = api_key unless api_key.blank?
+    self.class.debug = true
     self.class.headers({'Referer' => self.referer})
     res = self.class.get(API_URL[type], :query => query)
     if res.is_a?(Hash) && res["responseData"].is_a?(Hash)
