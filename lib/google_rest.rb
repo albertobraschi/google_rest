@@ -73,7 +73,6 @@ class GoogleRest
     no_escape = query.delete(:no_escape)
     query[:v] = API_VERSION
     query[:key] = api_key unless api_key.blank?
-    self.class.debug = true
     self.class.headers({'Referer' => self.referer})
     res = self.class.get(API_URL[type], :query => query)
     if res.is_a?(Hash) && res["responseData"].is_a?(Hash)
