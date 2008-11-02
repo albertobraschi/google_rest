@@ -34,8 +34,13 @@ class GoogleRest
     res.blank? ? nil : res["url"]
   end
 
-  def feed_load(feed_url, count_entries = 10)
-    res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h'} )
+  def feed_load(feed_url, count_entries = false)
+    if count_entries == false
+      # we retrieve the current feed entries
+      res = google_request(:feed_load, {:q => feed_url, :num => -1})
+    else
+      res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h'} )
+    end
     res.blank? ? nil : res["feed"]
   end
 
