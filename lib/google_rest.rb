@@ -1,9 +1,7 @@
 class GoogleRest
-  if defined?(HTTParty)
-    include HTTParty
-    base_uri "http://ajax.googleapis.com/ajax/services"
-    format :json
-  end
+  include HTTParty
+  base_uri "http://ajax.googleapis.com/ajax/services"
+  format :json
 
   attr_accessor :api_key
   attr_accessor :referer
