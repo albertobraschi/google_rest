@@ -1,7 +1,9 @@
+require 'json/add/rails'
+
 class GoogleRest
   include HTTParty
   base_uri "http://ajax.googleapis.com/ajax/services"
-  format :json
+  format :html
 
   attr_accessor :api_key
   attr_accessor :referer
@@ -73,11 +75,15 @@ class GoogleRest
   end
 
   def google_request(type, query = {})
+    # HTTParty now use JSON instead of ActiveSupport::JSON to do the decoding
+    # But it doesn't seems to work with Google Results so we hack it to not parse
+    # google results and we decode them by ourselves
     no_escape = query.delete(:no_escape)
     query[:v] = API_VERSION
     query[:key] = api_key unless api_key.blank?
     self.class.headers({'Referer' => self.referer})
     res = self.class.get(API_URL[type], :query => query)
+    res = ActiveSupport::JSON.decode(res)
     if res.is_a?(Hash) && res["responseData"].is_a?(Hash)
       no_escape ? res["responseData"] : Util.json_recursive_unescape(res["responseData"])
     else
