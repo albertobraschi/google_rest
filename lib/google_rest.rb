@@ -1,9 +1,11 @@
 require 'json/add/rails'
 
 class GoogleRest
-  include HTTParty
-  base_uri "http://ajax.googleapis.com/ajax/services"
-  format :html
+  if defined?(HTTParty)
+    include HTTParty
+    base_uri "http://ajax.googleapis.com/ajax/services"
+    format :html
+  end
 
   attr_accessor :api_key
   attr_accessor :referer
