@@ -1,2 +1,2 @@
-config.gem 'httparty', :version => ">=0.2.0"
+config.gem 'httparty', :version => ">=0.3.1"
 require 'google_rest'
