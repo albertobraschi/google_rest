@@ -9,12 +9,13 @@ module GoogleRest
 
     def initialize(raw)
       self.raw = raw
-      self.cursor = (raw || {})["cursor"]
-      self.results = (raw || {})["results"] || []
+      data = (raw || {})
+      self.cursor = data["cursor"]
+      self.results = data["results"] || []
     end
 
     def empty?
-      raw.blank? || results.blank?
+      raw.blank?
     end
     
     def each
@@ -72,7 +73,8 @@ module GoogleRest
       :feed_lookup => "/feed/lookup",
       :feed_load => "/feed/load",
       :web => "/search/web",
-      :blog => "/search/blogs"
+      :blog => "/search/blogs",
+      :news => "/search/news"
     }
 
     def initialize
@@ -88,7 +90,7 @@ module GoogleRest
 
     def feed_lookup(website)
       res = google_request(:feed_lookup, {:q => website.gsub(/^https?:\/\//i, '')})
-      res.empty? ? nil : res["url"]
+      res.empty? ? nil : res.raw["url"]
     end
 
     def feed_load(feed_url, count_entries = false)
@@ -98,7 +100,7 @@ module GoogleRest
       else
         res = google_request(:feed_load, {:num => count_entries, :q => feed_url, :scoring => 'h'} )
       end
-      res.empty? ? nil : res["feed"]
+      res.empty? ? nil : res.raw["feed"]
     end
 
     def blog_search(query, options = {})
@@ -107,6 +109,10 @@ module GoogleRest
 
     def web_search(query, options = {})
       common_search(:web, {:rsz => 'large', :q => query}.merge(options))
+    end
+
+    def news_search(query, options = {})
+      common_search(:news, {:rsz => 'large', :scoring => 'd', :q => query}.merge(options))
     end
 
     def inbound_links(url)
@@ -123,8 +129,13 @@ module GoogleRest
     def common_search(type, query = {})
       if !(lang=query.delete(:lang)).blank?
         lang.downcase!
-        query[:hl] = lang
-        query[:lr] = "lang_#{lang}"
+        if type == :news
+          query[:hl] = lang
+          query[:ned] = lang
+        else
+          query[:hl] = lang
+          query[:lr] = "lang_#{lang}"
+        end
       end
       google_request(type, query)
     end
