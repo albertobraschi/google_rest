@@ -89,11 +89,13 @@ module GoogleRest
     end
 
     def feed_lookup(website)
-      res = google_request(:feed_lookup, {:q => website.gsub(/^https?:\/\//i, '')})
+      return nil if website.blank?
+      res = google_request(:feed_lookup, {:q => website.to_s.gsub(/^https?:\/\//i, '')})
       res.empty? ? nil : res.raw["url"]
     end
 
     def feed_load(feed_url, count_entries = false)
+      return nil if feed_url.blank?
       if count_entries == false
         # we retrieve the current feed entries
         res = google_request(:feed_load, {:q => feed_url, :num => -1})
